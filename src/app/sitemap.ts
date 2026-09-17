@@ -1,6 +1,7 @@
 import { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
 import { AnnouncementStatus } from "@prisma/client";
+import { publicNewsWhere } from "@/lib/news";
 
 export const dynamic = "force-dynamic";
 
@@ -25,11 +26,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
   });
 
+  const news = await prisma.news.findMany({
+    where: publicNewsWhere(),
+    select: { id: true, updatedAt: true },
+  });
+
   const announcementUrls = announcements.map((announcement) => ({
     url: `${appUrl}/ogloszenia/${announcement.id}`,
     lastModified: announcement.updatedAt,
     changeFrequency: "weekly" as const,
     priority: 0.8,
+  }));
+
+  const newsUrls = news.map((item) => ({
+    url: `${appUrl}/aktualnosci/${item.id}`,
+    lastModified: item.updatedAt,
+    changeFrequency: "monthly" as const,
+    priority: 0.6,
   }));
 
   return [
@@ -46,6 +59,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.9,
     },
     {
+      url: `${appUrl}/aktualnosci`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.7,
+    },
+    {
       url: `${appUrl}/logowanie`,
       lastModified: new Date(),
       changeFrequency: "monthly",
@@ -58,5 +77,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.5,
     },
     ...announcementUrls,
+    ...newsUrls,
   ];
 }

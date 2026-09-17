@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Search, FileText, Building2, CheckCircle, Calendar, ArrowRight } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { formatDate, STATUS_LABELS } from "@/lib/utils";
+import { newsExcerpt, publicNewsWhere } from "@/lib/news";
 
 export default async function HomePage() {
   const [announcementsCount, orgCount, finishedCount, latestAnnouncements, latestNews] = await Promise.all([
@@ -16,8 +17,8 @@ export default async function HomePage() {
       include: { organization: true }
     }).catch(() => []),
     prisma.news.findMany({
-      where: { isPublished: true },
-      orderBy: { createdAt: "desc" },
+      where: publicNewsWhere(),
+      orderBy: { publishedAt: "desc" },
       take: 3
     }).catch(() => [])
   ]);
@@ -137,20 +138,32 @@ export default async function HomePage() {
       <div className="container mx-auto max-w-6xl px-4 grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* News Section */}
         <section>
-          <h2 className="text-2xl font-bold text-[#145447] mb-6">Aktualności</h2>
+          <div className="flex items-center justify-between gap-4 mb-6">
+            <h2 className="text-2xl font-bold text-[#145447]">Aktualności</h2>
+            <Link href="/aktualnosci" className="text-sm font-semibold text-[#145447] hover:underline">
+              Wszystkie aktualności
+            </Link>
+          </div>
           <div className="space-y-4">
             {latestNews.length === 0 ? (
               <p className="text-gray-600">Brak aktualności.</p>
             ) : (
               latestNews.map((news: any) => (
-                <div key={news.id} className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
-                  <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
+                <article key={news.id} className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
+                  <div className="flex items-center gap-2 text-sm text-gray-700 mb-2">
                     <Calendar className="w-4 h-4" />
-                    <span>{formatDate(news.createdAt)}</span>
+                    <span>{formatDate(news.publishedAt ?? news.createdAt)}</span>
                   </div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-2">{news.title}</h3>
-                  <p className="text-gray-600 line-clamp-2">{news.excerpt}</p>
-                </div>
+                  <h3 className="text-lg font-bold mb-2">
+                    <Link href={`/aktualnosci/${news.id}`} className="text-gray-900 hover:text-[#145447] hover:underline">
+                      {news.title}
+                    </Link>
+                  </h3>
+                  <p className="text-gray-600 line-clamp-2">{newsExcerpt(news.content, news.excerpt)}</p>
+                  <Link href={`/aktualnosci/${news.id}`} className="inline-flex mt-3 text-sm font-semibold text-[#145447] hover:underline">
+                    Czytaj więcej
+                  </Link>
+                </article>
               ))
             )}
           </div>

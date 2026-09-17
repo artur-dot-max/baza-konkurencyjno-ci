@@ -41,6 +41,9 @@ export async function Header() {
           <Link href="/ogloszenia" className="text-sm font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded px-2 py-1">
             Ogłoszenia
           </Link>
+          <Link href="/aktualnosci" className="text-sm font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded px-2 py-1">
+            Aktualności
+          </Link>
           <Link href="/o-systemie" className="text-sm font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded px-2 py-1">
             O Systemie
           </Link>
@@ -101,6 +104,9 @@ export async function Header() {
             <DropdownMenuContent align="end" className="w-64">
               <DropdownMenuItem asChild>
                 <Link href="/ogloszenia" className="w-full">Ogłoszenia</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/aktualnosci" className="w-full">Aktualności</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/o-systemie" className="w-full">O Systemie</Link>

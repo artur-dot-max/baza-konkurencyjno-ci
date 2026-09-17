@@ -12,6 +12,7 @@ let organizationId: string;
 let otherOrgId: string;
 let announcementId: string;
 let questionId: string;
+let newsId: string;
 let upload: { id: string; fileName: string; filePath: string };
 
 async function login(email: string, pass = password) {
@@ -31,7 +32,7 @@ test.describe.serial("Complete procurement workflow and security", () => {
   test.beforeAll(async () => {
     if (!new URL(process.env.DATABASE_URL!).pathname.endsWith("_test")) throw new Error("Unsafe test database");
     await db.emailOutbox.deleteMany(); await db.rateLimit.deleteMany(); await db.passwordReset.deleteMany();
-    await db.auditLog.deleteMany(); await db.announcement.deleteMany(); await db.user.deleteMany(); await db.organization.deleteMany();
+    await db.auditLog.deleteMany(); await db.announcement.deleteMany(); await db.news.deleteMany(); await db.user.deleteMany(); await db.organization.deleteMany();
     await db.user.create({ data: { email: "admin@example.test", password: await bcrypt.hash(password, 12), role: "ADMIN", name: "Administrator testowy" } });
     admin = await login("admin@example.test");
   });
@@ -144,9 +145,46 @@ test.describe.serial("Complete procurement workflow and security", () => {
     await owner.dispose(); owner = await login("owner@example.test", "Changed123!");
   });
 
+  test("published news is navigable while drafts and scheduled entries stay private", async ({ page, request }) => {
+    const published = await db.news.create({
+      data: {
+        title: "Nowe zasady publikacji ogłoszeń",
+        excerpt: "Krótka informacja o zmianach w systemie.",
+        content: "<p>Pełna treść aktualności dostępna dla wszystkich użytkowników.</p><script>window.__unsafe = true</script>",
+        isPublished: true,
+        publishedAt: new Date(Date.now() - 1000),
+      },
+    });
+    newsId = published.id;
+    const draft = await db.news.create({
+      data: { title: "Szkic aktualności", content: "Treść szkicu", isPublished: false },
+    });
+    const scheduled = await db.news.create({
+      data: { title: "Zaplanowana aktualność", content: "Treść przyszłego wpisu", isPublished: true, publishedAt: new Date(Date.now() + 3600000) },
+    });
+
+    await page.goto("/");
+    await page.getByRole("link", { name: published.title }).click();
+    await expect(page).toHaveURL(`/aktualnosci/${published.id}`);
+    await expect(page.getByRole("heading", { name: published.title })).toBeVisible();
+    await expect(page.getByText("Pełna treść aktualności dostępna dla wszystkich użytkowników.")).toBeVisible();
+    await expect(page.locator("article script")).toHaveCount(0);
+
+    await page.goto("/aktualnosci");
+    await expect(page.getByRole("link", { name: published.title })).toBeVisible();
+    await expect(page.getByText(draft.title)).toHaveCount(0);
+    await expect(page.getByText(scheduled.title)).toHaveCount(0);
+    expect((await request.get(`/aktualnosci/${draft.id}`)).status()).toBe(404);
+    expect((await request.get(`/aktualnosci/${scheduled.id}`)).status()).toBe(404);
+    const apiBody = await (await request.get("/api/news")).text();
+    expect(apiBody).toContain(published.title);
+    expect(apiBody).not.toContain(draft.title);
+    expect(apiBody).not.toContain(scheduled.title);
+  });
+
   test("mobile layout, accessible public forms and authenticated navigation", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    for (const path of ["/", "/ogloszenia", "/logowanie", "/rejestracja", "/odzyskaj-haslo", "/kontakt", "/faq", "/o-systemie", `/ogloszenia/${announcementId}`]) {
+    for (const path of ["/", "/ogloszenia", "/aktualnosci", `/aktualnosci/${newsId}`, "/logowanie", "/rejestracja", "/odzyskaj-haslo", "/kontakt", "/faq", "/o-systemie", `/ogloszenia/${announcementId}`]) {
       await page.goto(path);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), path).toBeTruthy();
       const report = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
