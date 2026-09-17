@@ -2,7 +2,7 @@ import { publicAnnouncementWhere } from "@/lib/access";
 import Link from "next/link";
 import { Search, FileText, Building2, CheckCircle, Calendar, ArrowRight } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { formatDate } from "@/lib/utils";
+import { formatDate, STATUS_LABELS } from "@/lib/utils";
 
 export default async function HomePage() {
   const [announcementsCount, orgCount, finishedCount, latestAnnouncements, latestNews] = await Promise.all([
@@ -122,7 +122,7 @@ export default async function HomePage() {
                       <td className="px-6 py-4 text-gray-700">{a.bidsDeadline ? formatDate(a.bidsDeadline) : "-"}</td>
                       <td className="px-6 py-4">
                         <span className="inline-block px-2.5 py-1 rounded-full text-xs font-medium bg-[#DCEDE7] text-[#145447]">
-                          {a.status}
+                          {STATUS_LABELS[a.status] ?? a.status}
                         </span>
                       </td>
                     </tr>
