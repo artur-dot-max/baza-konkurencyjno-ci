@@ -1,0 +1,99 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-baza_konkurencyjnosci}?schema=public
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+      - AUTH_SECRET=${AUTH_SECRET}
+      - AUTH_URL=${AUTH_URL:-http://localhost:3000}
+      - UPLOAD_DIR=/app/uploads
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_SECURE=${SMTP_SECURE:-false}
+      - SMTP_REQUIRE_TLS=${SMTP_REQUIRE_TLS:-true}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - MAIL_FROM=${MAIL_FROM}
+      - CONTACT_EMAIL=${CONTACT_EMAIL}
+      - CRON_SECRET=${CRON_SECRET}
+      - TRUST_PROXY=true
+      - AUTH_TRUST_HOST=true
+    volumes:
+      - uploads_data:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - app_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 5
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    command: ["npx", "prisma", "migrate", "deploy"]
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-baza_konkurencyjnosci}?schema=public
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app_network
+    restart: "no"
+
+  mail-worker:
+    image: alpine:3.22
+    command:
+      - sh
+      - -c
+      - >-
+        while true; do
+          wget -q -O /dev/null --post-data='' --header="Authorization: Bearer $${CRON_SECRET}" http://app:3000/api/internal/mail || true;
+          sleep 10;
+        done
+    environment:
+      - CRON_SECRET=${CRON_SECRET}
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - app_network
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB:-baza_konkurencyjnosci}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-baza_konkurencyjnosci}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  uploads_data:
+
+networks:
+  app_network:
+    driver: bridge
