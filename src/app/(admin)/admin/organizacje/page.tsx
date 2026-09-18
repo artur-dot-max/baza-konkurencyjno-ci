@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { formatDate } from "@/lib/utils";
+import { formatDate, ORG_STATUS_LABELS } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 export default function AdminOrganizationsPage() {
@@ -85,7 +85,7 @@ export default function AdminOrganizationsPage() {
                     org.status === "PENDING" ? "bg-yellow-100 text-yellow-800" :
                     "bg-red-100 text-red-800"
                   }`}>
-                    {org.status}
+                    {ORG_STATUS_LABELS[org.status] || org.status}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">{formatDate(org.createdAt)}</td>

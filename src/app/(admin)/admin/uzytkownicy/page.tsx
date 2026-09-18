@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { formatDate } from "@/lib/utils";
+import { formatDate, USER_ROLE_LABELS, USER_STATUS_LABELS } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 export default function AdminUsersPage() {
@@ -81,10 +81,10 @@ export default function AdminUsersPage() {
               <tr key={user.id}>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">{user.firstName} {user.lastName}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">{user.email}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">{user.role}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">{USER_ROLE_LABELS[user.role] || user.role}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   <span className={`px-2 py-1 text-xs rounded-full ${user.status === "ACTIVE" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
-                    {user.status}
+                    {USER_STATUS_LABELS[user.status] || user.status}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">{formatDate(user.createdAt)}</td>

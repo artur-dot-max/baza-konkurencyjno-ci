@@ -166,6 +166,17 @@ test.describe.serial("Complete procurement workflow and security", () => {
     expect(await (await request.get("/api/news")).text()).not.toContain(scheduledTitle);
 
     await page.context().addCookies((await admin.storageState()).cookies);
+    await page.goto("/admin/organizacje");
+    await expect(page.getByText("Aktywna", { exact: true }).first()).toBeVisible();
+    await expect(page.getByText("ACTIVE", { exact: true })).toHaveCount(0);
+    await page.goto("/admin/uzytkownicy");
+    await expect(page.getByText("Administrator", { exact: true }).first()).toBeVisible();
+    await expect(page.getByText("Aktywny", { exact: true }).first()).toBeVisible();
+    await expect(page.getByText("ADMIN", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("ACTIVE", { exact: true })).toHaveCount(0);
+    await page.goto("/admin/ogloszenia");
+    await expect(page.locator("tbody").getByText(/Rozstrzygnięte|Unieważnione|Opublikowane/, { exact: true }).first()).toBeVisible();
+    await expect(page.getByText(/RESOLVED|CANCELLED|PUBLISHED/, { exact: true })).toHaveCount(0);
     await page.goto("/admin/aktualnosci/nowa");
     const formAccessibility = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
     expect(formAccessibility.violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => n.target) }))).toEqual([]);

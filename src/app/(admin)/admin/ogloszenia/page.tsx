@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { formatDate } from "@/lib/utils";
+import { formatDate, STATUS_COLORS, STATUS_LABELS } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
@@ -94,7 +94,9 @@ export default function AdminAnnouncementsPage() {
                 <td className="px-6 py-4 text-sm truncate max-w-xs">{a.title}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">{a.organization?.name}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  {a.status}
+                  <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${STATUS_COLORS[a.status] || "bg-gray-100 text-gray-800"}`}>
+                    {STATUS_LABELS[a.status] || a.status}
+                  </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">{a.publishDate ? formatDate(a.publishDate) : "-"}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">

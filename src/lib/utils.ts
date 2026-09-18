@@ -65,9 +65,20 @@ export const ORDER_TYPE_LABELS: Record<string, string> = {
 };
 
 export const ORG_STATUS_LABELS: Record<string, string> = {
-  PENDING: "Oczekuje",
+  PENDING: "Oczekująca",
   ACTIVE: "Aktywna",
   BLOCKED: "Zablokowana",
+};
+
+export const USER_STATUS_LABELS: Record<string, string> = {
+  ACTIVE: "Aktywny",
+  BLOCKED: "Zablokowany",
+};
+
+export const USER_ROLE_LABELS: Record<string, string> = {
+  ADMIN: "Administrator",
+  ORGANIZATION: "Użytkownik organizacji",
+  GUEST: "Gość",
 };
 
 export function generateProcedureNumber(): string {
