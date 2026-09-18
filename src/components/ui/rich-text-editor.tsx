@@ -30,6 +30,7 @@ interface RichTextEditorProps {
   onChange: (html: string) => void;
   placeholder?: string;
   editable?: boolean;
+  ariaLabel?: string;
 }
 
 const MenuBar = ({ editor }: { editor: Editor | null }) => {
@@ -200,6 +201,7 @@ export function RichTextEditor({
   onChange,
   placeholder = "Wprowadź tekst...",
   editable = true,
+  ariaLabel = "Edytor tekstu",
 }: RichTextEditorProps) {
   const editor = useEditor({
     immediatelyRender: false,
@@ -226,6 +228,9 @@ export function RichTextEditor({
     editorProps: {
       attributes: {
         class: "prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none min-h-[200px] p-4 max-w-none prose-p:my-1 prose-headings:my-2",
+        role: "textbox",
+        "aria-label": ariaLabel,
+        "aria-multiline": "true",
       },
     },
   });

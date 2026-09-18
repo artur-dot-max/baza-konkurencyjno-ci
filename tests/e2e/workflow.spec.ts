@@ -145,6 +145,56 @@ test.describe.serial("Complete procurement workflow and security", () => {
     await owner.dispose(); owner = await login("owner@example.test", "Changed123!");
   });
 
+  test("admin CMS creates, previews, schedules, withdraws and deletes news", async ({ page, request }) => {
+    expect((await request.get("/api/news?scope=admin")).status()).toBe(401);
+    expect((await admin.post("/api/news", { data: {
+      title: "Nieprawidłowy termin publikacji",
+      content: "<p>Treść wpisu z nieprawidłowym terminem.</p>",
+      status: "SCHEDULED",
+      publishedAt: new Date(Date.now() - 3600000).toISOString(),
+    } })).status()).toBe(400);
+    const scheduledTitle = "Zaplanowana wiadomość z CMS";
+    const scheduled = await admin.post("/api/news", { data: {
+      title: scheduledTitle,
+      content: "<p>Ta wiadomość pojawi się dopiero w przyszłości.</p>",
+      excerpt: "Zaplanowany wpis",
+      status: "SCHEDULED",
+      publishedAt: new Date(Date.now() + 3600000).toISOString(),
+    } });
+    expect(scheduled.status()).toBe(201);
+    const scheduledItem = await scheduled.json();
+    expect(await (await request.get("/api/news")).text()).not.toContain(scheduledTitle);
+
+    await page.context().addCookies((await admin.storageState()).cookies);
+    await page.goto("/admin/aktualnosci/nowa");
+    const formAccessibility = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
+    expect(formAccessibility.violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => n.target) }))).toEqual([]);
+    await page.getByLabel("Tytuł").fill("Aktualność utworzona w CMS");
+    await page.getByLabel("Treść aktualności").fill("Pełna treść wpisu utworzonego przez administratora.");
+    await page.getByLabel("Opis SEO i skrót").fill("Opis wpisu CMS");
+    await page.getByLabel("Status").selectOption("PUBLISHED");
+    await page.getByRole("button", { name: "Zapisz aktualność" }).click();
+    await expect(page).toHaveURL(/\/admin\/aktualnosci$/);
+    await expect(page.getByText("Aktualność utworzona w CMS", { exact: true })).toBeVisible();
+
+    const created = await db.news.findFirstOrThrow({ where: { title: "Aktualność utworzona w CMS" } });
+    expect((await request.get(`/aktualnosci/${created.id}`)).status()).toBe(200);
+    await page.goto(`/admin/aktualnosci/${created.id}/podglad`);
+    await expect(page.getByRole("heading", { name: created.title })).toBeVisible();
+    await page.getByRole("link", { name: "Edytuj" }).click();
+    await page.getByLabel("Tytuł").fill("Aktualność wycofana do szkicu");
+    await page.getByLabel("Status").selectOption("DRAFT");
+    await page.getByRole("button", { name: "Zapisz aktualność" }).click();
+    await expect(page).toHaveURL(/\/admin\/aktualnosci$/);
+    expect((await request.get(`/aktualnosci/${created.id}`)).status()).toBe(404);
+
+    page.once("dialog", (dialog) => dialog.accept());
+    await page.getByRole("button", { name: "Usuń: Aktualność wycofana do szkicu" }).click();
+    await expect(page.getByText("Aktualność wycofana do szkicu", { exact: true })).toHaveCount(0);
+    expect(await db.auditLog.count({ where: { entity: "NEWS", entityId: created.id } })).toBeGreaterThanOrEqual(3);
+    expect((await admin.delete(`/api/news/${scheduledItem.id}`)).status()).toBe(204);
+  });
+
   test("published news is navigable while drafts and scheduled entries stay private", async ({ page, request }) => {
     const published = await db.news.create({
       data: {

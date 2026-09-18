@@ -9,6 +9,7 @@ import {
   Building2,
   FileText,
   ScrollText,
+  Newspaper,
 } from "lucide-react";
 
 const navItems = [
@@ -16,6 +17,7 @@ const navItems = [
   { href: "/admin/uzytkownicy", label: "Użytkownicy", icon: Users },
   { href: "/admin/organizacje", label: "Organizacje", icon: Building2 },
   { href: "/admin/ogloszenia", label: "Ogłoszenia", icon: FileText },
+  { href: "/admin/aktualnosci", label: "Aktualności", icon: Newspaper },
   { href: "/admin/logi", label: "Logi systemowe", icon: ScrollText },
 ];
 
@@ -26,7 +28,7 @@ export function AdminSidebar() {
     <aside className="w-64 bg-navy-900 text-white flex-shrink-0 min-h-full">
       <nav className="p-4 space-y-2">
         {navItems.map((item) => {
-          const isActive = pathname === item.href;
+          const isActive = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(`${item.href}/`));
           const Icon = item.icon;
 
           return (
